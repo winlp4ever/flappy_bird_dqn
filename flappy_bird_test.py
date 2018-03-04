@@ -4,8 +4,16 @@ import os, sys
 import gym
 from gym.wrappers import Monitor
 import gym_ple
+import numpy as np, cv2
+from skimage import color
+import matplotlib.pyplot as plt
+
+
 
 # The world's simplest agent!
+
+def to_gray(img):
+    return 0.299*img[:,:,0] + 0.587*img[:,:,1] + 0.114*img[:,:,2]
 class RandomAgent(object):
     def __init__(self, action_space):
         self.action_space = action_space
@@ -45,7 +53,16 @@ if __name__ == '__main__':
         while True:
             action = agent.act(ob, reward, done)
             ob, reward, done, _ = env.step(action)
-            env.render();
+            #ob = color.rgb2gray(ob)
+            ob = to_gray(ob)
+            print(ob)
+            ob[ob < 80] = 0
+            ob[ob >= 80] = 255
+            print(ob)
+            plt.imshow(ob, aspect="auto")
+            plt.show()
+            print(np.shape(ob))
+            env.render()
             if done:
                 break
             # Note there's no env.render() here. But the environment still can open window and

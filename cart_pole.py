@@ -71,7 +71,7 @@ class CartPole:
     def __init__(self):
         self.sample_batch_size = 32
         self.episodes          = 10000
-        self.env               = gym.make('FlappyBird-v0')
+        self.env               = gym.make('CartPole-v1')
 
         self.state_size        = self.env.observation_space.shape[0]
         self.action_size       = self.env.action_space.n
