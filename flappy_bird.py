@@ -26,12 +26,13 @@ def to_gray(img):
     img = cv2.pyrDown(img)
     img = cv2.pyrDown(img)
     img = cv2.pyrDown(img)
+    img = img[:54,8:]
     return img
 
 class Agent():
     def __init__(self, action_size):
         self.weight_backup = "flappybird_weight.h5"
-        self.memory = deque(maxlen=2000)
+        self.memory = deque(maxlen=50000)
 
         self.exploration_rate = 1.00
         self.exploration_min = 0.01
@@ -40,7 +41,7 @@ class Agent():
         self.gamma = 0.95
 
         self.action_size = action_size
-        self.input_shape = (64, 36, 1)
+        self.input_shape = (54, 28, 1)
         self.brain = self._build_model()
 
 
@@ -116,7 +117,7 @@ class FlappyBird:
             for index_episode in range(self.episodes):
                 state = self.env.reset()
                 state = to_gray(state)
-                state = state.reshape((1, 64, 36, 1))
+                state = state.reshape((1, 54, 28, 1))
 
                 index = 0
                 done = False
@@ -127,7 +128,7 @@ class FlappyBird:
 
                     next_state, reward, done, _ = self.env.step(action)
                     next_state = to_gray(next_state)
-                    next_state = next_state.reshape((1, 64, 36, 1))
+                    next_state = next_state.reshape((1, 54, 28, 1))
 
                     self.agent.remember(state, action, reward, next_state, done)
                     state = next_state
