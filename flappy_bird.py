@@ -25,8 +25,7 @@ def to_gray(img):
     img = 255 - img
     img = cv2.pyrDown(img)
     img = cv2.pyrDown(img)
-    img = cv2.pyrDown(img)
-    img = img[:54,8:]
+    img = img[:108,8:]
     return img
 
 class Agent():
@@ -34,14 +33,17 @@ class Agent():
         self.weight_backup = "flappybird_weight.h5"
         self.memory = deque(maxlen=50000)
 
-        self.exploration_rate = 1.00
-        self.exploration_min = 0.01
-        self.exploration_decay = 0.995
+        self.observe = 10000
+
+        self.explore = 1e5
+        self.INITIAL_EXPLORE = 0.1
+        self.exploration_rate = self.INITIAL_EXPLORE
+        self.exploration_min = 0.0001
         self.learning_rate = 0.001
-        self.gamma = 0.95
+        self.gamma = 0.99
 
         self.action_size = action_size
-        self.input_shape = (54, 28, 1)
+        self.input_shape = (108, 64, 1)
         self.brain = self._build_model()
 
 
@@ -99,13 +101,14 @@ class Agent():
             target_f[0][action] = target
             self.brain.fit(state, target_f, epochs=1, verbose=0)
         if self.exploration_rate > self.exploration_min:
-            self.exploration_rate *= self.exploration_decay
+            self.exploration_rate -= (self.INITIAL_EXPLORE - self.exploration_min)/self.explore
 
 
 class FlappyBird:
     def __init__(self):
+        self.observe = 10000
         self.sample_batch_size = 32
-        self.episodes = 10000
+        self.episodes = 100000
         self.env = gym.make('FlappyBird-v0')
 
         self.action_size = self.env.action_space.n
@@ -114,10 +117,11 @@ class FlappyBird:
 
     def run(self):
         try:
+            t = 0
             for index_episode in range(self.episodes):
                 state = self.env.reset()
                 state = to_gray(state)
-                state = state.reshape((1, 54, 28, 1))
+                state = state.reshape((1, 108, 64, 1))
 
                 index = 0
                 done = False
@@ -128,16 +132,18 @@ class FlappyBird:
 
                     next_state, reward, done, _ = self.env.step(action)
                     next_state = to_gray(next_state)
-                    next_state = next_state.reshape((1, 54, 28, 1))
+                    next_state = next_state.reshape((1, 108, 64, 1))
 
                     self.agent.remember(state, action, reward, next_state, done)
                     state = next_state
                     index += 1
+                t += index
                 print("Episode {}# Score: {}".format(index_episode, index + 1))
-                self.agent.replay(self.sample_batch_size)
+                if t > self.observe:
+                    self.agent.replay(self.sample_batch_size)
 
-                if index_episode%100 == 0:
-                    self.agent.save_model()
+                    if index_episode%100 == 0:
+                        self.agent.save_model()
         finally:
             self.env.close()
 
