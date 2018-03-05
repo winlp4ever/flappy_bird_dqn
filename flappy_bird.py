@@ -25,7 +25,8 @@ def to_gray(img):
     img = 255 - img
     img = cv2.pyrDown(img)
     img = cv2.pyrDown(img)
-    img = img[:108,8:]
+    img = cv2.pyrDown(img)
+    img = img[:54,4:]
     return img
 
 class Agent():
@@ -39,11 +40,11 @@ class Agent():
         self.INITIAL_EXPLORE = 0.1
         self.exploration_rate = self.INITIAL_EXPLORE
         self.exploration_min = 0.0001
-        self.learning_rate = 0.001
+        self.learning_rate = 1e-5
         self.gamma = 0.99
 
         self.action_size = action_size
-        self.input_shape = (108, 64, 1)
+        self.input_shape = (54, 32, 4)
         self.brain = self._build_model()
 
 
@@ -88,7 +89,7 @@ class Agent():
 
 
     def replay(self, sample_batch_size):
-        if len(self.memory) < sample_batch_size:
+        if len(self.memory) < self.observe:
             return
         sample_batch = random.sample(self.memory, sample_batch_size)
         for state, action, reward, next_state, done in sample_batch:
@@ -106,7 +107,6 @@ class Agent():
 
 class FlappyBird:
     def __init__(self):
-        self.observe = 10000
         self.sample_batch_size = 32
         self.episodes = 100000
         self.env = gym.make('FlappyBird-v0')
@@ -117,12 +117,12 @@ class FlappyBird:
 
     def run(self):
         try:
-            t = 0
+            max = 0
             for index_episode in range(self.episodes):
-                state = self.env.reset()
-                state = to_gray(state)
-                state = state.reshape((1, 108, 64, 1))
-
+                frame = self.env.reset()
+                frame = to_gray(frame)
+                state = np.stack((frame, frame, frame, frame), axis=2)
+                state = state.reshape((1, 54, 32, 4))
                 index = 0
                 done = False
                 while not done:
@@ -130,20 +130,23 @@ class FlappyBird:
 
                     action = self.agent.act(state)
 
-                    next_state, reward, done, _ = self.env.step(action)
-                    next_state = to_gray(next_state)
-                    next_state = next_state.reshape((1, 108, 64, 1))
+                    next_frame, reward, done, _ = self.env.step(action)
+                    next_frame = to_gray(next_frame)
+                    next_frame = next_frame.reshape((1, 54, 32, 1))
+
+                    next_state = np.append(next_frame, state[:,:,:,:3], axis=3)
 
                     self.agent.remember(state, action, reward, next_state, done)
                     state = next_state
                     index += 1
-                t += index
-                print("Episode {}# Score: {}".format(index_episode, index + 1))
-                if t > self.observe:
-                    self.agent.replay(self.sample_batch_size)
+                if index + 1 > max:
+                    max = index + 1
+                print("Episode {}# Score: {} (max: {})".format(index_episode, index + 1, max))
 
-                    if index_episode%100 == 0:
-                        self.agent.save_model()
+                self.agent.replay(self.sample_batch_size)
+
+                if index_episode%100 == 0:
+                    self.agent.save_model()
         finally:
             self.env.close()
 
