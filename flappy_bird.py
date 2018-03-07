@@ -34,13 +34,13 @@ class Agent():
         self.weight_backup = "flappybird_weight.h5"
         self.memory = deque(maxlen=50000)
 
-        self.observe = 10000
+        self.observe = 100000
 
         self.explore = 1e5
         self.INITIAL_EXPLORE = 0.1
         self.exploration_rate = self.INITIAL_EXPLORE
         self.exploration_min = 0.0001
-        self.learning_rate = 1e-5
+        self.learning_rate = 1e-6
         self.gamma = 0.99
 
         self.action_size = action_size
@@ -123,9 +123,13 @@ class FlappyBird:
                 frame = to_gray(frame)
                 state = np.stack((frame, frame, frame, frame), axis=2)
                 state = state.reshape((1, 54, 32, 4))
-                index = 0
+
+                reward = 0
+                acc_reward = 0
                 done = False
                 while not done:
+                    acc_reward += reward
+
                     self.env.render()
 
                     action = self.agent.act(state)
@@ -138,10 +142,10 @@ class FlappyBird:
 
                     self.agent.remember(state, action, reward, next_state, done)
                     state = next_state
-                    index += 1
-                if index + 1 > max:
-                    max = index + 1
-                print("Episode {}# Score: {} (max: {})".format(index_episode, index + 1, max))
+
+                if acc_reward > max:
+                    max = acc_reward
+                print("Episode {}# Score: {} (max: {})".format(index_episode, acc_reward, max))
 
                 self.agent.replay(self.sample_batch_size)
 
