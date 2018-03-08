@@ -13,6 +13,8 @@ from keras.utils import np_utils # utilities for one-hot encoding of ground trut
 from keras.optimizers import Adam
 import cv2
 
+import matplotlib.pyplot as plt
+
 from skimage import color
 
 
@@ -26,7 +28,7 @@ def to_gray(img):
     img = cv2.pyrDown(img)
     img = cv2.pyrDown(img)
     img = cv2.pyrDown(img)
-    img = img[:108,8:]
+    img = img[:54,4:]
     return img
 
 class Agent():
@@ -44,7 +46,7 @@ class Agent():
         self.gamma = 0.99
 
         self.action_size = action_size
-        self.input_shape = (108, 64, 4)
+        self.input_shape = (54, 32, 4)
         self.brain = self._build_model()
 
 
@@ -52,12 +54,11 @@ class Agent():
     def _build_model(self):
         model = Sequential()
         model.add(Conv2D(32, kernel_size=(4, 4), strides=(2, 2), activation='relu', input_shape=self.input_shape))
-        model.add(MaxPooling2D(pool_size=(2, 2)))
         model.add(Conv2D(64, kernel_size=(2, 2), strides=(1, 1), activation='relu'))
         model.add(MaxPooling2D(pool_size=(2, 2)))
         model.add(Dropout(0.25))
         model.add(Flatten())
-        model.add(Dense(256, activation='relu'))
+        model.add(Dense(128, activation='relu'))
         model.add(Dense(self.action_size, activation='linear'))
 
         model.compile(loss='mse', optimizer=Adam(lr=self.learning_rate))
@@ -118,12 +119,14 @@ class FlappyBird:
 
     def run(self):
         try:
+            plot = []
             max = 0
+            avg = 0
             for index_episode in range(self.episodes):
                 frame = self.env.reset()
                 frame = to_gray(frame)
                 state = np.stack((frame, frame, frame, frame), axis=2)
-                state = state.reshape((1, 108, 64, 4))
+                state = state.reshape((1, 54, 32, 4))
 
                 reward = 0
                 acc_reward = 0
@@ -137,7 +140,7 @@ class FlappyBird:
 
                     next_frame, reward, done, _ = self.env.step(action)
                     next_frame = to_gray(next_frame)
-                    next_frame = next_frame.reshape((1, 108, 64, 1))
+                    next_frame = next_frame.reshape((1, 54, 32, 1))
 
                     next_state = np.append(next_frame, state[:,:,:,:3], axis=3)
 
@@ -146,7 +149,10 @@ class FlappyBird:
 
                 if acc_reward > max:
                     max = acc_reward
-                print("Episode {}# Score: {} (max: {})".format(index_episode, acc_reward, max))
+                avg = (avg * index_episode + acc_reward) / (index_episode + 1)
+                plot.append(acc_reward)
+
+                print("Episode {}# Score: {} - max: {} - average: {})".format(index_episode, acc_reward, max, avg))
 
                 self.agent.replay(self.sample_batch_size)
 
