@@ -32,11 +32,12 @@ def to_gray(img):
     return img
 
 class Agent():
-    def __init__(self, action_size):
-        self.weight_backup = "flappybird_weight.h5"
+    def __init__(self, action_size, weight_backup=None, save_weight='./model/flappybird_weight.h5'):
+        self.weight_backup = weight_backup
+        self.save_weight = save_weight
         self.memory = deque(maxlen=50000)
 
-        self.observe = 100000
+        self.observe = 10000
 
         self.explore = 1e5
         self.INITIAL_EXPLORE = 0.1
@@ -55,15 +56,16 @@ class Agent():
         model = Sequential()
         model.add(Conv2D(32, kernel_size=(4, 4), strides=(2, 2), activation='relu', input_shape=self.input_shape))
         model.add(Conv2D(64, kernel_size=(2, 2), strides=(1, 1), activation='relu'))
+        model.add(Conv2D(128, kernel_size=(2, 2), strides=(1, 1), activation='relu'))
         model.add(MaxPooling2D(pool_size=(2, 2)))
         model.add(Dropout(0.25))
         model.add(Flatten())
-        model.add(Dense(128, activation='relu'))
+        model.add(Dense(1024, activation='relu'))
         model.add(Dense(self.action_size, activation='linear'))
 
         model.compile(loss='mse', optimizer=Adam(lr=self.learning_rate))
 
-        if os.path.isfile(self.weight_backup):
+        if self.weight_backup and os.path.isfile(self.weight_backup):
             model.load_weights(self.weight_backup)
             self.exploration_rate = self.exploration_min
 
@@ -72,7 +74,7 @@ class Agent():
 
 
     def save_model(self):
-        self.brain.save(self.weight_backup)
+        self.brain.save(self.save_weight)
 
 
 
@@ -108,16 +110,16 @@ class Agent():
 
 
 class FlappyBird:
-    def __init__(self):
+    def __init__(self, weight_backup=None):
         self.sample_batch_size = 32
-        self.episodes = 100000
+        self.episodes = 200000
         self.env = gym.make('FlappyBird-v0')
 
         self.action_size = self.env.action_space.n
 
-        self.agent = Agent(self.action_size)
+        self.agent = Agent(self.action_size, weight_backup)
 
-    def run(self):
+    def run(self, render=False):
         try:
             plot = []
             max = 0
@@ -134,7 +136,8 @@ class FlappyBird:
                 while not done:
                     acc_reward += reward
 
-                    self.env.render()
+                    if render:
+                        self.env.render()
 
                     action = self.agent.act(state)
 
@@ -152,14 +155,15 @@ class FlappyBird:
                 avg = (avg * index_episode + acc_reward) / (index_episode + 1)
                 plot.append(acc_reward)
 
-                print("Episode {}# Score: {} - max: {} - average: {})".format(index_episode, acc_reward, max, avg))
+                print("Episode {}# Score: {} - max: {} - average: {})".format(index_episode, acc_reward, max, avg), flush=True, end='\r')
 
                 self.agent.replay(self.sample_batch_size)
 
-                if index_episode%100 == 0:
+                if index_episode%100 == 99:
                     self.agent.save_model()
         finally:
             self.env.close()
+            print('')
 
 if __name__ == '__main__':
     flappy = FlappyBird();
