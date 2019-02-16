@@ -33,7 +33,8 @@ def to_gray(img):
     return img
 
 class Agent():
-    def __init__(self, action_size, weight_backup=None, save_weight='./model/flappybird_weight.h5'):
+    def __init__(self, action_size, weight_backup=None,
+                save_weight='./model/flappybird_weight.h5', frames_per_state=8):
         self.weight_backup = weight_backup
         self.save_weight = save_weight
         self.memory = deque(maxlen=50000)
@@ -48,7 +49,7 @@ class Agent():
         self.gamma = 0.99
 
         self.action_size = action_size
-        self.input_shape = (54, 32, 4)
+        self.input_shape = (54, 32, frames_per_state)
         self.brain = self._build_model()
 
 
@@ -111,14 +112,15 @@ class Agent():
 
 
 class FlappyBird:
-    def __init__(self, weight_backup=None):
+    def __init__(self, weight_backup=None, frames_per_state=8):
         self.sample_batch_size = 32
         self.episodes = 200000
         self.env = gym.make('FlappyBird-v0')
 
         self.action_size = self.env.action_space.n
+        self.fpstate = frames_per_state
 
-        self.agent = Agent(self.action_size, weight_backup)
+        self.agent = Agent(self.action_size, weight_backup, frames_per_state=frames_per_state)
 
     def run(self, render=False):
         try:
@@ -128,8 +130,8 @@ class FlappyBird:
             for index_episode in range(self.episodes):
                 frame = self.env.reset()
                 frame = to_gray(frame)
-                state = np.stack((frame, frame, frame, frame), axis=2)
-                state = state.reshape((1, 54, 32, 4))
+                state = np.stack([frame] * self.fpstate, axis=2)
+                state = state.reshape((1, 54, 32, self.fpstate))
 
                 reward = 0
                 acc_reward = 0
@@ -146,7 +148,7 @@ class FlappyBird:
                     next_frame = to_gray(next_frame)
                     next_frame = next_frame.reshape((1, 54, 32, 1))
 
-                    next_state = np.append(next_frame, state[:,:,:,:3], axis=3)
+                    next_state = np.append(next_frame, state[:,:,:,:self.fpstate - 1], axis=3)
 
                     self.agent.remember(state, action, reward, next_state, done)
                     state = next_state
@@ -169,9 +171,9 @@ class FlappyBird:
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--trained-weights', '-l', help='decide whether load trained weights or not.',
-                        default=None, const='./model/flappybird_weight.h5', nargs='*')
+                        default=None, const='./model/flappybird_weight.h5', nargs='?')
     parser.add_argument('--render', '-r', help='decide whether render video or not.', type=bool,
-                        default=False, const=True, nargs='*')
+                        default=False, const=True, nargs='?')
 
     args = parser.parse_args()
 
