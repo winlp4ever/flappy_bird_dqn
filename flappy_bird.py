@@ -12,6 +12,7 @@ from keras.layers import Input, Conv2D, MaxPooling2D, Dense, Dropout, Flatten
 from keras.utils import np_utils # utilities for one-hot encoding of ground truth values
 from keras.optimizers import Adam
 import cv2
+import argparse
 
 import matplotlib.pyplot as plt
 
@@ -166,5 +167,13 @@ class FlappyBird:
             print('')
 
 if __name__ == '__main__':
-    flappy = FlappyBird();
-    flappy.run()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--trained-weights', '-l', help='decide whether load trained weights or not.',
+                        default=None, const='./model/flappybird_weight.h5', nargs='*')
+    parser.add_argument('--render', '-r', help='decide whether render video or not.', type=bool,
+                        default=False, const=True, nargs='*')
+
+    args = parser.parse_args()
+
+    flappy = FlappyBird(args.trained_weights);
+    flappy.run(args.render)
