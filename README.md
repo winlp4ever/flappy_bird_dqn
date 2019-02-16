@@ -6,7 +6,7 @@ The algorithm implemented is fully described in this paper: [Playing Atari with 
 
 A demo video can be found here:
 
-[![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/8OcF7RKr5e4/0.jpg)](https://www.youtube.com/watch?v=8OcF7RKr5e4)
+[![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/_DatHRW7Zdo/0.jpg)](https://www.youtube.com/watch?v=_DatHRW7Zdo)
 
 #### Package dependencies
 
